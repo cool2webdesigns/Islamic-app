@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islamic Prayer Times & Calendar</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #0f4c75, #1b6ca8); min-height: 100vh; color: white; padding: 20px; }
+        .container { max-width: 450px; margin: 0 auto; }
+        
+        .header { text-align: center; padding: 25px 0; }
+        .header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .date-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 20px; }
+        .hijri { font-size: 1.1rem; color: #ffd700; margin-bottom: 5px; }
+        .gregorian { font-size: 0.95rem; opacity: 0.9; }
+        
+        .prayer-card { background: white; color: #1a375c; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .prayer-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 15px; text-align: center; color: #0f4c75; }
+        .prayer-item { display: flex; justify-content: space-between; padding: 14px 12px; border-bottom: 1px solid #e8edf2; align-items: center; }
+        .prayer-item:last-child { border-bottom: none; }
+        .prayer-name { font-weight: 500; font-size: 1rem; }
+        .prayer-time { font-weight: 600; font-size: 1rem; color: #0f4c75; }
+        .active { background: #e3f2fd; border-radius: 8px; font-weight: bold; }
+        
+        .calendar-card { background: white; color: #1a375c; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .cal-nav { background: #0f4c75; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-day-head { font-size: 0.75rem; font-weight: 600; color: #666; padding: 8px 0; }
+        .cal-date { padding: 8px 4px; border-radius: 6px; font-size: 0.9rem; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+        .cal-today { background: #0f4c75; color: white; font-weight: bold; }
+        .cal-hijri { font-size: 0.6rem; opacity: 0.7; display: block; margin-top: 2px; }
+        
+        .qibla-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 20px; }
+        .qibla-dir { font-size: 1.3rem; margin-top: 8px; }
+        .location { font-size: 0.85rem; opacity: 0.8; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕌 Islamic Guide</h1>
+            <p class="location" id="location">📍 Nottingham, UK</p>
+        </div>
+
+        <div class="date-box">
+            <div class="hijri" id="hijri-date">Loading Hijri Date...</div>
+            <div class="gregorian" id="gregorian-date"></div>
+        </div>
+
+        <div class="qibla-box">
+            <div>🧭 Qibla Direction</div>
+            <div class="qibla-dir" id="qibla-dir">⬆️ 118.4° SE</div>
+        </div>
+
+        <div class="prayer-card">
+            <div class="prayer-title">⏰ Daily Prayer Times</div>
+            <div id="prayer-list">
+                <div class="prayer-item"><span class="prayer-name">Fajr</span><span class="prayer-time">Loading...</span></div>
+                <div class="prayer-item"><span class="prayer-name">Sunrise</span><span class="prayer-time">—</span></div>
+                <div class="prayer-item"><span class="prayer-name">Dhuhr</span><span class="prayer-time">Loading...</span></div>
+                <div class="prayer-item"><span class="prayer-name">Asr</span><span class="prayer-time">Loading...</span></div>
+                <div class="prayer-item"><span class="prayer-name">Maghrib</span><span class="prayer-time">Loading...</span></div>
+                <div class="prayer-item"><span class="prayer-name">Isha</span><span class="prayer-time">Loading...</span></div>
+            </div>
+        </div>
+
+        <div class="calendar-card">
+            <div class="cal-header">
+                <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+                <span id="cal-month" style="font-weight:600;"></span>
+                <button class="cal-nav" onclick="changeMonth(1)">▶</button>
+            </div>
+            <div class="cal-grid">
+                <div class="cal-day-head">Sun</div><div class="cal-day-head">Mon</div><div class="cal-day-head">Tue</div>
+                <div class="cal-day-head">Wed</div><div class="cal-day-head">Thu</div><div class="cal-day-head">Fri</div><div class="cal-day-head">Sat</div>
+            </div>
+            <div class="cal-grid" id="cal-dates"></div>
+        </div>
+    </div>
+
+<script>
+// ========== HIJRI DATE CONVERTER ==========
+function gregorianToHijri(gDate) {
+    let gY = gDate.getFullYear(), gM = gDate.getMonth() + 1, gD = gDate.getDate();
+    let jd = Math.floor((11*gY + 3)/30) + 354*gY + 30*gM - Math.floor((gM-1)/2) + gD - 385;
+    let l = jd - 1948440 + 10632;
+    let h = Math.floor(l / 10631); l = l - 10631*h + 354;
+    let m = (Math.floor((109*l + 11)/32530)) + 1;
+    let d = l - Math.floor((306*m - 1)/10631) - Math.floor((11*(m-1))/32) + 29;
+    const hijriMonths = ["Muharram","Safar","Rabi' al-Awwal","Rabi' al-Thani","Jumada al-Ula","Jumada al-Akhirah",
+                         "Rajab","Sha'ban","Ramadan","Shawwal","Dhul Qi'dah","Dhul Hijjah"];
+    return {d, m, y: h, monthName: hijriMonths[m-1]};
+}
+
+// ========== PRAYER TIMES (Nottingham, UK — Oct 2026 sample; auto-update daily in full version) ==========
+const prayerData = {
+    // Simplified — replace with API for live auto times
+    getTimes: function(date) {
+        const dayOfYear = Math.floor((date - new Date(date.getFullYear(),0,1)) / (1000*60*60*24)) + 1;
+        // Nottingham seasonal approximation
+        const fajrH = 4.5 + (dayOfYear > 180 ? -(dayOfYear-180)*0.03 : dayOfYear*0.025);
+        const sunriseH = 6.3 + (dayOfYear > 180 ? -(dayOfYear-180)*0.028 : dayOfYear*0.023);
+        const dhuhrH = 11.75 + (dayOfYear > 180 ? -(dayOfYear-180)*0.004 : dayOfYear*0.0035);
+        const asrH = 15.5 + (dayOfYear > 180 ? -(dayOfYear-180)*0.025 : dayOfYear*0.022);
+        const maghribH = 17.8 + (dayOfYear > 180 ? -(dayOfYear-180)*0.03 : dayOfYear*0.026);
+        const ishaH = 19.0 + (dayOfYear > 180 ? -(dayOfYear-180)*0.03 : dayOfYear*0.026);
+        return {
+            Fajr:  this._hm(fajrH),
+            Sunrise: this._hm(sunriseH),
+            Dhuhr: this._hm(dhuhrH),
+            Asr:   this._hm(asrH),
+            Maghrib: this._hm(maghribH),
+            Isha:  this._hm(ishaH)
+        };
+    },
+    _hm: function(h) {
+        h = ((h + 24) % 24).toFixed(2);
+        let [hr,min] = h.split('.');
+        min = Math.round(parseFloat('0.'+min)*60);
+        if(min >= 60) { hr = parseInt(hr)+1; min = 0; }
+        return `${parseInt(hr)}:${min.toString().padStart(2,'0')}`;
+    }
+};
+
+// ========== APP INIT ==========
+let currentCalDate = new Date();
+const today = new Date();
+
+function updateDates() {
+    const now = new Date();
+    const hijri = gregorianToHijri(now);
+    document.getElementById('hijri-date').textContent = `${hijri.d} ${hijri.monthName}, ${hijri.y} AH`;
+    document.getElementById('gregorian-date').textContent = now.toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+}
+
+function updatePrayers() {
+    const times = prayerData.getTimes(new Date());
+    const list = document.getElementById('prayer-list');
+    list.innerHTML = `
+        <div class="prayer-item"><span class="prayer-name">🌙 Fajr</span><span class="prayer-time">${times.Fajr}</span></div>
+        <div class="prayer-item"><span class="prayer-name">☀️ Sunrise</span><span class="prayer-time">${times.Sunrise}</span></div>
+        <div class="prayer-item"><span class="prayer-name">🌞 Dhuhr</span><span class="prayer-time">${times.Dhuhr}</span></div>
+        <div class="prayer-item"><span class="prayer-name">🌤️ Asr</span><span class="prayer-time">${times.Asr}</span></div>
+        <div class="prayer-item"><span class="prayer-name">🌅 Maghrib</span><span class="prayer-time">${times.Maghrib}</span></div>
+        <div class="prayer-item"><span class="prayer-name">🌑 Isha</span><span class="prayer-time">${times.Isha}</span></div>
+    `;
+}
+
+function renderCalendar() {
+    const y = currentCalDate.getFullYear();
+    const m = currentCalDate.getMonth();
+    document.getElementById('cal-month').textContent = 
+        currentCalDate.toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+    
+    const firstDay = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const calDiv = document.getElementById('cal-dates');
+    calDiv.innerHTML = '';
+    
+    for(let i=0; i<firstDay; i++) calDiv.innerHTML += '<div class="cal-date"></div>';
+    
+    for(let d=1; d<=daysInMonth; d++) {
+        const cellDate = new Date(y, m, d);
+        const hijri = gregorianToHijri(cellDate);
+        const isToday = (d === today.getDate() && m === today.getMonth() && y === today.getFullYear());
+        calDiv.innerHTML += `<div class="cal-date ${isToday?'cal-today':''}">
+            ${d}<span class="cal-hijri">${hijri.d}/${hijri.m}</span>
+        </div>`;
+    }
+}
+
+function changeMonth(delta) {
+    currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+    renderCalendar();
+}
+
+// Run on load
+updateDates();
+updatePrayers();
+renderCalendar();
+</script>
+</body>
+</html>
